@@ -1,22 +1,40 @@
+#include <ArduinoJson.h>
+#include <U8glib.h>
 
-#include "U8glib.h"
 #include "redis_logo.h"
 
 U8GLIB_SSD1306_128X64 u8g(U8G_I2C_OPT_DEV_0 | U8G_I2C_OPT_NO_ACK | U8G_I2C_OPT_FAST);
 
+#define SERIAL_SPEED 57600
+
 #define PANEL_LOGO 0
 #define PANEL_BASIC 1
 #define PANEL_ADVANCED 2
+
+#define INTERVAL_PANEL 10000
+#define LOGO_ANIM_DELAY 1000
 
 #define SYMBOL_SPACING 6
 #define CHARCODE_BULLET 210
 
 #define FONT_NORMAL 0
 #define FONT_SYMBOL 1
+#define NEWLINE '\n'
 
 int k_width_anim = 0;
 byte k_state = PANEL_LOGO;
+long prev_millis = 0;
 
+StaticJsonBuffer<512> json_buffer;
+char command[512];
+char *command_it = command;
+  
+struct basic_stats_t {
+  char clients[6];
+  char memory[8];
+  char ops_per_sec[8];
+} basic_stats;
+  
 void set_font(byte font_type)
 {
   switch(font_type)
@@ -61,9 +79,9 @@ void draw_basic_stats(void) {
   u8g.drawHLine(0, y, 128);
   y += 5;
   
-  draw_new_line(&y, "Clients", "14", false);
-  draw_new_line(&y, "Used Memory", "80.6M");
-  draw_new_line(&y, "Ops per sec", "2104");
+  draw_new_line(&y, "Clients", basic_stats.clients, false);
+  draw_new_line(&y, "Memory", basic_stats.memory);
+  draw_new_line(&y, "Ops/sec", basic_stats.ops_per_sec);
 }
 
 void draw_adv_stats(void) {
@@ -93,36 +111,98 @@ void draw(void) {
   }
 }
 
+bool read_command(void)
+{
+  char ch;
+  
+  if(Serial.available() > 0) {
+    ch = Serial.read();
+    if(ch != NEWLINE) {
+      *command_it=ch;
+      command_it++;
+      return false;
+    } else {
+      *command_it='\0';
+      strcpy(basic_stats.clients, "666");
+      return true;
+    }
+  }
+}
+
+void interpret_command()
+{
+  JsonObject& json = json_buffer.parseObject(command);
+  const char *cmd_op = json["CMD"];
+  
+  /*if(!strcmp(cmd_op, "lol")) {
+    k_state = PANEL_ADVANCED;
+    prev_millis = millis();
+    return;
+  }*/
+
+  if(!strcmp(cmd_op, "update_basic")) {
+    strcpy(basic_stats.clients, json["clients"]);
+    strcpy(basic_stats.memory, json["memory"]);
+    strcpy(basic_stats.ops_per_sec, json["ops/s"]);
+    return;
+  }
+}
+
+
+void initialize_basic_stats(void)
+{
+  strcpy(basic_stats.clients, "0");
+  strcpy(basic_stats.memory, "0");
+  strcpy(basic_stats.ops_per_sec, "0");
+}
+
+
 void setup(void) {
+  Serial.begin(SERIAL_SPEED);
   u8g.setColorIndex(1);
   set_font(FONT_NORMAL);
+  initialize_basic_stats();
 }
 
 void loop(void) {
+  
+  // U8g drawing loop
   u8g.firstPage();  
   do {
     draw();
   } while( u8g.nextPage() );
 
-  switch(k_state) {
-    case PANEL_LOGO:
+  // Handle initial logo and animation
+  if(k_state==PANEL_LOGO) {
       k_width_anim += 8;
       if(k_width_anim >= 128) {
         k_state = PANEL_BASIC;
-        delay(1000);
+        delay(LOGO_ANIM_DELAY);
       }
-      break;
-    case PANEL_BASIC:
-      k_state = PANEL_ADVANCED;
-      delay(8000);
-      break;
-    case PANEL_ADVANCED:
-      k_state = PANEL_BASIC;
-      delay(100);
-      break;
-    default:
-      break;    
   }
-  
+
+  // Change panels based on interval
+  unsigned long curr_millis = millis();
+  if(curr_millis - prev_millis >= INTERVAL_PANEL) {
+    prev_millis = curr_millis;
+    
+    switch(k_state) {
+      case PANEL_BASIC:
+        k_state = PANEL_ADVANCED;
+        break;
+      case PANEL_ADVANCED:
+        k_state = PANEL_BASIC;
+        break;
+      default:
+        break;    
+    }
+  }
+
+  // Check if a command was received
+  if(read_command()) {
+    interpret_command();
+    command_it = command;
+  }
+
 }
 
