@@ -3,37 +3,45 @@
 
 #include "redis_logo.h"
 
+// Configuration section --------------------
 U8GLIB_SSD1306_128X64 u8g(U8G_I2C_OPT_DEV_0 | U8G_I2C_OPT_NO_ACK | U8G_I2C_OPT_FAST);
 
 #define SERIAL_SPEED 9600
 
-#define PANEL_LOGO 0
-#define PANEL_BASIC 1
-#define PANEL_ADVANCED 2
-
-#define INTERVAL_PANEL 10000
+#define INTERVAL_PANEL 5000
 #define LOGO_ANIM_DELAY 1000
 
 #define SYMBOL_SPACING 6
 #define CHARCODE_BULLET 210
+// -----------------------------------------
 
 #define FONT_NORMAL 0
 #define FONT_SYMBOL 1
 #define NEWLINE '\n'
 
+#define PANEL_LOGO 0
+#define PANEL_BASIC 1
+#define PANEL_ADVANCED 2
+
 int k_width_anim = 0;
 byte k_state = PANEL_LOGO;
 long prev_millis = 0;
-bool dirty;
+bool dirty = true;
 
-char command[256];
+char command[256] = {0};
 char *command_it = command;
   
 struct basic_stats_t {
-  char clients[6];
+  char clients[8];
   char memory[8];
   char ops_per_sec[8];
 } basic_stats;
+
+struct advanced_stats_t {
+  char rejected_conn[8];
+  char key_hits[8];
+  char key_miss[8];
+} advanced_stats;
   
 void set_font(byte font_type)
 {
@@ -62,7 +70,7 @@ void draw_new_line(int *y, const char *key, const char *value, bool new_line=tru
   u8g.drawStr(128-str_width, *y, value);
 }
 
-void draw_basic_stats(void) {
+int draw_panel_header(const char *title) {
   int y = -1;
   int str_width = 0;
   
@@ -74,19 +82,37 @@ void draw_basic_stats(void) {
 
   set_font(FONT_NORMAL);
 
-  u8g.drawStr(str_width, y, "Basic Stats");
+  u8g.drawStr(str_width, y, title);
   y += u8g.getFontLineSpacing() + 2;
   u8g.drawHLine(0, y, 128);
   y += 5;
   
+  return y;
+}
+
+void draw_basic_stats(void) {
+  int y = draw_panel_header("Basic Stats");
   draw_new_line(&y, "Clients", basic_stats.clients, false);
   draw_new_line(&y, "Memory", basic_stats.memory);
   draw_new_line(&y, "Ops/sec", basic_stats.ops_per_sec);
 }
 
+void draw_graph(void) {
+  int y = draw_panel_header("Advanced Stats");
+  int x = 10;
+  
+  for(int i=x; i<=118; i++)
+  {
+    u8g.drawLine(i, y, i, y+30);
+  }
+}
+
 void draw_adv_stats(void) {
-  u8g.drawStr(0, -1, "Advanced Stats");
-  u8g.drawFrame(10, 14, 20, 80);
+  int y = draw_panel_header("Advanced Stats");
+
+  draw_new_line(&y, "Rej Conn", advanced_stats.rejected_conn, false);
+  draw_new_line(&y, "Key Hits", advanced_stats.key_hits);
+  draw_new_line(&y, "Key Miss", advanced_stats.key_miss);
 }
 
 void draw_anim_logo() {
@@ -150,15 +176,27 @@ bool interpret_command()
     strcpy(basic_stats.ops_per_sec, json["ops/s"]);
     return true;
   }
+
+  if(!strcmp(cmd_op, "update_advanced")) {
+    strcpy(advanced_stats.rejected_conn, json["rej_conn"]);
+    strcpy(advanced_stats.key_hits, json["key_hits"]);
+    strcpy(advanced_stats.key_miss, json["key_miss"]);
+    return true;
+  }
+
   
   return false;
 }
 
-void initialize_basic_stats(void)
+void initialize_stats(void)
 {
   strcpy(basic_stats.clients, "0");
   strcpy(basic_stats.memory, "0");
   strcpy(basic_stats.ops_per_sec, "0");
+  
+  strcpy(advanced_stats.rejected_conn, "0");
+  strcpy(advanced_stats.key_hits, "0");
+  strcpy(advanced_stats.key_miss, "0");
 }
 
 void change_panels(void) {
@@ -169,7 +207,7 @@ void change_panels(void) {
     
     switch(k_state) {
       case PANEL_BASIC:
-        //k_state = PANEL_ADVANCED;
+        k_state = PANEL_ADVANCED;
         break;
       case PANEL_ADVANCED:
         k_state = PANEL_BASIC;
@@ -208,7 +246,7 @@ void setup(void) {
   Serial.begin(SERIAL_SPEED);
   u8g.setColorIndex(1);
   set_font(FONT_NORMAL);
-  initialize_basic_stats();
+  initialize_stats();
   dirty = true;
 }
 

@@ -14,11 +14,25 @@ while True:
         "ops/s": "%d" % random.randint(0, 1000),
     }
 
+    d2 = {
+        "CMD": "update_advanced",
+        "rej_conn" : "%d" % random.randint(0, 1000),
+        "key_hits" : "%dM" % random.randint(0, 1000),
+        "key_miss": "%d" % random.randint(0, 1000),
+    }
+
     data = json.dumps(d) + '\n'
     ser.write(data)
     print "Wrote:", data
     ser.flush()
     time.sleep(0.3)
+
+    data = json.dumps(d2) + '\n'
+    ser.write(data)
+    print "Wrote:", data
+    ser.flush()
+    time.sleep(0.3)
+
 
 ser.close()
 
