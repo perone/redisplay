@@ -5,7 +5,7 @@
 
 U8GLIB_SSD1306_128X64 u8g(U8G_I2C_OPT_DEV_0 | U8G_I2C_OPT_NO_ACK | U8G_I2C_OPT_FAST);
 
-#define SERIAL_SPEED 57600
+#define SERIAL_SPEED 9600
 
 #define PANEL_LOGO 0
 #define PANEL_BASIC 1
@@ -24,9 +24,9 @@ U8GLIB_SSD1306_128X64 u8g(U8G_I2C_OPT_DEV_0 | U8G_I2C_OPT_NO_ACK | U8G_I2C_OPT_F
 int k_width_anim = 0;
 byte k_state = PANEL_LOGO;
 long prev_millis = 0;
+bool dirty;
 
-StaticJsonBuffer<512> json_buffer;
-char command[512];
+char command[256];
 char *command_it = command;
   
 struct basic_stats_t {
@@ -113,41 +113,46 @@ void draw(void) {
 
 bool read_command(void)
 {
-  char ch;
-  
-  if(Serial.available() > 0) {
-    ch = Serial.read();
+  while(Serial.available()>0) {
+    const char ch = Serial.read();
     if(ch != NEWLINE) {
-      *command_it=ch;
+      *command_it = ch;
       command_it++;
-      return false;
     } else {
       *command_it='\0';
-      strcpy(basic_stats.clients, "666");
+      command_it = command;
       return true;
     }
   }
+  return false;
 }
 
-void interpret_command()
+bool interpret_command()
 {
+  StaticJsonBuffer<200> json_buffer;
   JsonObject& json = json_buffer.parseObject(command);
+  
+  if(!json.success()) {
+    return false;
+  }
+
   const char *cmd_op = json["CMD"];
   
-  /*if(!strcmp(cmd_op, "lol")) {
+  if(!strcmp(cmd_op, "panel_advanced")) {
     k_state = PANEL_ADVANCED;
     prev_millis = millis();
-    return;
-  }*/
+    return true;
+  }
 
   if(!strcmp(cmd_op, "update_basic")) {
     strcpy(basic_stats.clients, json["clients"]);
     strcpy(basic_stats.memory, json["memory"]);
     strcpy(basic_stats.ops_per_sec, json["ops/s"]);
-    return;
+    return true;
   }
+  
+  return false;
 }
-
 
 void initialize_basic_stats(void)
 {
@@ -156,31 +161,7 @@ void initialize_basic_stats(void)
   strcpy(basic_stats.ops_per_sec, "0");
 }
 
-
-void setup(void) {
-  Serial.begin(SERIAL_SPEED);
-  u8g.setColorIndex(1);
-  set_font(FONT_NORMAL);
-  initialize_basic_stats();
-}
-
-void loop(void) {
-  
-  // U8g drawing loop
-  u8g.firstPage();  
-  do {
-    draw();
-  } while( u8g.nextPage() );
-
-  // Handle initial logo and animation
-  if(k_state==PANEL_LOGO) {
-      k_width_anim += 8;
-      if(k_width_anim >= 128) {
-        k_state = PANEL_BASIC;
-        delay(LOGO_ANIM_DELAY);
-      }
-  }
-
+void change_panels(void) {
   // Change panels based on interval
   unsigned long curr_millis = millis();
   if(curr_millis - prev_millis >= INTERVAL_PANEL) {
@@ -188,7 +169,7 @@ void loop(void) {
     
     switch(k_state) {
       case PANEL_BASIC:
-        k_state = PANEL_ADVANCED;
+        //k_state = PANEL_ADVANCED;
         break;
       case PANEL_ADVANCED:
         k_state = PANEL_BASIC;
@@ -196,13 +177,57 @@ void loop(void) {
       default:
         break;    
     }
+    
+    dirty = true;
+  }
+}
+
+void anim_logo(void) {
+  // Handle initial logo and animation
+  if(k_state==PANEL_LOGO) {
+      dirty = true;
+      k_width_anim += 8;
+      if(k_width_anim >= 128) {
+        k_state = PANEL_BASIC;
+        delay(LOGO_ANIM_DELAY);
+      }
+  }
+}
+ 
+void check_commands(void)
+{
+  if(read_command()) {
+    bool ret = interpret_command();
+    // If the command changed any state, we need redraw
+    if(ret)
+      dirty = true;
+  }
+}
+  
+void setup(void) {
+  Serial.begin(SERIAL_SPEED);
+  u8g.setColorIndex(1);
+  set_font(FONT_NORMAL);
+  initialize_basic_stats();
+  dirty = true;
+}
+
+void loop(void) {
+  
+  // U8g drawing loop (when dirty only to save cycles)
+  if(dirty) {
+    u8g.firstPage();  
+    do {
+      draw();
+    } while(u8g.nextPage());
+    dirty = false;
   }
 
+  anim_logo();
+  change_panels();
+
   // Check if a command was received
-  if(read_command()) {
-    interpret_command();
-    command_it = command;
-  }
+  check_commands();
 
 }
 
