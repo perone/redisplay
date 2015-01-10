@@ -8,14 +8,14 @@ print "Starting..."
 
 while True:
     d = {
-        "CMD": "update_basic",
+        "cmd": "update_basic",
         "clients" : "%d" % random.randint(0, 1000),
         "memory" : "%dM" % random.randint(0, 1000),
         "ops/s": "%d" % random.randint(0, 1000),
     }
 
     d2 = {
-        "CMD": "update_advanced",
+        "cmd": "update_advanced",
         "rej_conn" : "%d" % random.randint(0, 1000),
         "key_hits" : "%dM" % random.randint(0, 1000),
         "key_miss": "%d" % random.randint(0, 1000),

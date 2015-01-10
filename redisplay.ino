@@ -22,6 +22,7 @@ U8GLIB_SSD1306_128X64 u8g(U8G_I2C_OPT_DEV_0 | U8G_I2C_OPT_NO_ACK | U8G_I2C_OPT_F
 #define PANEL_LOGO 0
 #define PANEL_BASIC 1
 #define PANEL_ADVANCED 2
+#define PANEL_OPS_SEC 3
 
 int k_width_anim = 0;
 byte k_state = PANEL_LOGO;
@@ -42,6 +43,10 @@ struct advanced_stats_t {
   char key_hits[8];
   char key_miss[8];
 } advanced_stats;
+
+struct ops_sec_stats_t {
+  char todo[8];
+} ops_sec_stats;
   
 void set_font(byte font_type)
 {
@@ -121,6 +126,10 @@ void draw_anim_logo() {
   u8g.drawStr(0, 52, "Server Monitor v.1.0");
 }
 
+void draw_ops_sec_stats(void) {
+  int y = draw_panel_header("Operations/sec.");
+}
+
 void draw(void) {
   switch(k_state) {
     case PANEL_LOGO:
@@ -131,6 +140,9 @@ void draw(void) {
       break;
     case PANEL_ADVANCED:
       draw_adv_stats();
+      break;
+    case PANEL_OPS_SEC:
+      draw_ops_sec_stats();
       break;
     default:
       break;    
@@ -162,13 +174,13 @@ bool interpret_command()
     return false;
   }
 
-  const char *cmd_op = json["CMD"];
+  const char *cmd_op = json["cmd"];
   
-  if(!strcmp(cmd_op, "panel_advanced")) {
+  /*if(!strcmp(cmd_op, "panel_advanced")) {
     k_state = PANEL_ADVANCED;
     prev_millis = millis();
     return true;
-  }
+  }*/
 
   if(!strcmp(cmd_op, "update_basic")) {
     strcpy(basic_stats.clients, json["clients"]);
@@ -184,6 +196,10 @@ bool interpret_command()
     return true;
   }
 
+  if(!strcmp(cmd_op, "update_ops_sec")) {
+    // TODO
+    return true;
+  }
   
   return false;
 }
@@ -210,6 +226,9 @@ void change_panels(void) {
         k_state = PANEL_ADVANCED;
         break;
       case PANEL_ADVANCED:
+        k_state = PANEL_OPS_SEC;
+        break;
+      case PANEL_OPS_SEC:
         k_state = PANEL_BASIC;
         break;
       default:
