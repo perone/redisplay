@@ -127,7 +127,7 @@ void draw_ops_sec_stats(void) {
   u8g.drawStr(xoffset-max_value_w, y, ops_sec_stats.max_value);
   
   u8g.drawStr(0, 40, "Last 40");
-  u8g.drawStr(0, 40+u8g.getFontLineSpacing(), "minutes");
+  u8g.drawStr(0, 40+u8g.getFontLineSpacing(), "seconds");
 
   y = y + (u8g.getHeight() - y - 1);
   

@@ -56,17 +56,17 @@ def run_main():
         basic_info = json.dumps(build_update_basic(info))
         stat_cube.write(basic_info + '\n')
         stat_cube.flush()
-        time.sleep(0.3)
+        time.sleep(0.1)
 
         advanced_info = json.dumps(build_update_advanced(info))
         stat_cube.write(advanced_info + '\n')
         stat_cube.flush()
-        time.sleep(0.3)
+        time.sleep(0.1)
 
         ops_sec_info = json.dumps(build_update_ops_sec(ops_sec_deque))
         stat_cube.write(ops_sec_info + '\n')
         stat_cube.flush()
-        time.sleep(0.3)
+        time.sleep(0.1)
 
         time.sleep(1)
 
