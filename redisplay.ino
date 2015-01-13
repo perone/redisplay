@@ -9,7 +9,7 @@ U8GLIB_SSD1306_128X64 u8g(U8G_I2C_OPT_DEV_0 | U8G_I2C_OPT_NO_ACK | U8G_I2C_OPT_F
 #define SERIAL_SPEED 9600
 
 #define INTERVAL_PANEL 5000
-#define LOGO_ANIM_DELAY 1000
+#define LOGO_ANIM_DELAY 200
 
 #define SYMBOL_SPACING 6
 #define CHARCODE_BULLET 210
@@ -18,6 +18,8 @@ U8GLIB_SSD1306_128X64 u8g(U8G_I2C_OPT_DEV_0 | U8G_I2C_OPT_NO_ACK | U8G_I2C_OPT_F
 #define FONT_NORMAL 0
 #define FONT_SYMBOL 1
 #define NEWLINE '\n'
+
+#define MAX_GRAPH_VALUES 40
 
 #define PANEL_LOGO 0
 #define PANEL_BASIC 1
@@ -29,7 +31,7 @@ byte k_state = PANEL_LOGO;
 long prev_millis = 0;
 bool dirty = true;
 
-char command[256] = {0};
+char command[512] = {0};
 char *command_it = command;
   
 struct basic_stats_t {
@@ -45,7 +47,8 @@ struct advanced_stats_t {
 } advanced_stats;
 
 struct ops_sec_stats_t {
-  char todo[8];
+  int graph_values[MAX_GRAPH_VALUES];
+  char max_value[8];
 } ops_sec_stats;
   
 void set_font(byte font_type)
@@ -102,16 +105,6 @@ void draw_basic_stats(void) {
   draw_new_line(&y, "Ops/sec", basic_stats.ops_per_sec);
 }
 
-void draw_graph(void) {
-  int y = draw_panel_header("Advanced Stats");
-  int x = 10;
-  
-  for(int i=x; i<=118; i++)
-  {
-    u8g.drawLine(i, y, i, y+30);
-  }
-}
-
 void draw_adv_stats(void) {
   int y = draw_panel_header("Advanced Stats");
 
@@ -127,7 +120,21 @@ void draw_anim_logo() {
 }
 
 void draw_ops_sec_stats(void) {
+  const int xoffset = u8g.getWidth() - MAX_GRAPH_VALUES - 4;
   int y = draw_panel_header("Operations/sec.");
+
+  const int max_value_w = u8g.getStrWidth(ops_sec_stats.max_value) + 6;
+  u8g.drawStr(xoffset-max_value_w, y, ops_sec_stats.max_value);
+  
+  u8g.drawStr(0, 40, "Last 40");
+  u8g.drawStr(0, 40+u8g.getFontLineSpacing(), "minutes");
+
+  y = y + (u8g.getHeight() - y - 1);
+  
+  for(int value_idx=0; value_idx<MAX_GRAPH_VALUES; value_idx++) {
+    const int value = ops_sec_stats.graph_values[value_idx];
+    u8g.drawLine(value_idx+xoffset, y, value_idx+xoffset, y-value);
+  }
 }
 
 void draw(void) {
@@ -149,25 +156,9 @@ void draw(void) {
   }
 }
 
-bool read_command(void)
-{
-  while(Serial.available()>0) {
-    const char ch = Serial.read();
-    if(ch != NEWLINE) {
-      *command_it = ch;
-      command_it++;
-    } else {
-      *command_it='\0';
-      command_it = command;
-      return true;
-    }
-  }
-  return false;
-}
-
 bool interpret_command()
 {
-  StaticJsonBuffer<200> json_buffer;
+  StaticJsonBuffer<512> json_buffer;
   JsonObject& json = json_buffer.parseObject(command);
   
   if(!json.success()) {
@@ -176,11 +167,11 @@ bool interpret_command()
 
   const char *cmd_op = json["cmd"];
   
-  /*if(!strcmp(cmd_op, "panel_advanced")) {
+  if(!strcmp(cmd_op, "panel_advanced")) {
     k_state = PANEL_ADVANCED;
     prev_millis = millis();
     return true;
-  }*/
+  }
 
   if(!strcmp(cmd_op, "update_basic")) {
     strcpy(basic_stats.clients, json["clients"]);
@@ -197,7 +188,18 @@ bool interpret_command()
   }
 
   if(!strcmp(cmd_op, "update_ops_sec")) {
-    // TODO
+    JsonArray &graph_values = json["graph_values"];
+
+    int values_size = graph_values.size();
+    if(values_size > MAX_GRAPH_VALUES)
+      return false;
+    
+    strcpy(ops_sec_stats.max_value, json["max_value"]);
+    
+    for(int i=0; i<values_size; i++) {
+      const int value = graph_values[i].as<int>();
+      ops_sec_stats.graph_values[i] = value;
+    }
     return true;
   }
   
@@ -213,6 +215,11 @@ void initialize_stats(void)
   strcpy(advanced_stats.rejected_conn, "0");
   strcpy(advanced_stats.key_hits, "0");
   strcpy(advanced_stats.key_miss, "0");
+  
+  strcpy(ops_sec_stats.max_value, "0");
+  for(int i=0; i<=MAX_GRAPH_VALUES; i++) {
+    ops_sec_stats.graph_values[i] = 0;
+  }
 }
 
 void change_panels(void) {
@@ -249,6 +256,22 @@ void anim_logo(void) {
         delay(LOGO_ANIM_DELAY);
       }
   }
+}
+
+bool read_command(void)
+{
+  while(Serial.available()>0) {
+    const char ch = Serial.read();
+    if(ch != NEWLINE) {
+      *command_it = ch;
+      command_it++;
+    } else {
+      *command_it='\0';
+      command_it = command;
+      return true;
+    }
+  }
+  return false;
 }
  
 void check_commands(void)
