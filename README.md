@@ -9,4 +9,14 @@ services with a new hardware wireless platform.
 
 ## Architecture
 
+The archictecure as it is today is very simple and is described
+in the image below. There is an application gathering information
+from the Redis server and then it serializes it using JSON
+and send it over Serial (FTDI/USB) to the Arduino which in
+turn is responsible for drawing the panels in the OLED display.
+
+JSON is somehow overkill to send over the limited buffer that
+Arduino has for Serial, but it was designed intentionally because
+the Serial isn't going to be used in future for Stat Cubes.
+
 ![Image](./docs/arch.png?raw=true)
