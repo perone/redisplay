@@ -7,4 +7,6 @@ monitors called **Stat Cubes**. It is still under development
 and it will be redesigned in future to support different
 services with a new hardware wireless platform.
 
+## Architecture
+
 ![Image](./docs/arch.png?raw=true)
