@@ -7,5 +7,5 @@ monitors called **Stat Cubes**. It is still under development
 and it will be redesigned in future to support different
 services with a new hardware wireless platform.
 
-
+![Architecture](https://raw.github.com/perone/redisplay/master/docs/arch.png)
 
