@@ -23,6 +23,8 @@ the Serial isn't going to be used in future for Stat Cubes.
 
 ## Screenshots of the panels
 
+![Image](./docs/redis_logo.png?raw=true)]
+
 ![Image](./docs/basic_stats.png?raw=true)]
 
 ![Image](./docs/arduino_mini_oled.png?raw=true)]
