@@ -20,3 +20,20 @@ Arduino has for Serial, but it was designed intentionally because
 the Serial isn't going to be used in future for Stat Cubes.
 
 ![Image](./docs/arch.png?raw=true)
+
+## Screenshots of the panels
+
+![Image](./docs/basic_stats.png?raw=true)]
+
+![Image](./docs/arduino_mini_oled.png?raw=true)]
+
+![Image](./docs/coin_reference.png?raw=true)]
+
+![Image](./docs/ops_sec_stats.png?raw=true)]
+
+![Image](./docs/advanced_stats.png?raw=true)]
+
+
+
+
+
