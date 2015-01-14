@@ -37,19 +37,28 @@ the Serial isn't going to be used in future for Stat Cubes.
 
 ## Arduino Requirements
 
-TODO
-
+To compile the Arduino (firmware) code, you'll need to
+install [u8glib](https://code.google.com/p/u8glib/) and
+[ArduinoJson](https://github.com/bblanchon/ArduinoJson).
+	
 ## Arduino Installation
 
-TODO
+Just clone the repository inside a directory in your Arduino
+sketchbook directory.
 
 ## Python Requirements
 
-TODO
+Use **pip** to install dependencies:
+
+```shell
+~# pip install -r monitor/pip_requirements.txt
+```
 
 ## Python Installation
 
-TODO
+To test it without a Redis server, use the Python code
+``/monitor/redisplay_test.py'', to test with a real Redis
+server, just use the ``/monitor/redisplay_monitor.py''.
 
 
 
