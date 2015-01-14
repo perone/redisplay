@@ -1,2 +1,5 @@
-# redisplay
-Redis monitor using Arduino and OLED displays.
+# Redisplay
+
+Redis monitor using Arduino and OLED displays. This project works
+like
+
