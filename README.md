@@ -35,6 +35,21 @@ the Serial isn't going to be used in future for Stat Cubes.
 
 ![Image](./docs/advanced_stats.png?raw=true)]
 
+## Arduino Requirements
+
+TODO
+
+## Arduino Installation
+
+TODO
+
+## Python Requirements
+
+TODO
+
+## Python Installation
+
+TODO
 
 
 
