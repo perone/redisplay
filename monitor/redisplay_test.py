@@ -3,8 +3,6 @@ import json
 import random
 import time
 
-
-
 ser = serial.Serial("/dev/ttyUSB0", 9600)
 print "Starting..."
 
@@ -48,7 +46,3 @@ while True:
     time.sleep(0.3)
 
 ser.close()
-
-#while True:
-#    print ser.readline()
-#    print "."
