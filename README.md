@@ -57,8 +57,8 @@ Use **pip** to install dependencies:
 ## Python Installation
 
 To test it without a Redis server, use the Python code
-``/monitor/redisplay_test.py'', to test with a real Redis
-server, just use the ``/monitor/redisplay_monitor.py''.
+``/monitor/redisplay_test.py``, to test with a real Redis
+server, just use the ``/monitor/redisplay_monitor.py``.
 
 
 
